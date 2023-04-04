@@ -1,28 +1,75 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
+import getThemeList from "~/data/getThemeList";
 
-function getCountImage(name: string, theme: string, length = 7) {
-  const x = 1;
-  const y = 1;
-  const parts = "ccc";
+export type Theme =
+  | "asoul"
+  | "gelbooru"
+  | "gelbooru-h"
+  | "moebooru"
+  | "moebooru-h"
+  | "rule34";
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="315" height="100" version="1.1">
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+const CF_NAMESPACE_ID = process.env.CF_NAMESPACE_ID;
+const CF_TOKEN = process.env.CF_TOKEN;
+
+const getEndpoint = (key: string) => {
+  return `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_NAMESPACE_ID}/values/${key}`;
+};
+
+async function getCountByName(name: string) {
+  const endpoint = getEndpoint(name);
+  const response = await fetch(endpoint, {
+    headers: {
+      Authorization: `Bearer ${CF_TOKEN}`,
+    },
+  });
+  const count = await response.text();
+
+  const res = +count + 1;
+
+  // write
+  fetch(endpoint, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${CF_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: `${res}`,
+  });
+
+  return res;
+}
+
+async function getCountImage(name: string, theme: Theme, length = 7) {
+  const count = await getCountByName(name);
+  const themeList = getThemeList()[theme];
+
+  const countArray = count.toString().padStart(length, "0").split("");
+  let x = 0;
+  let y = 0;
+
+  const parts = countArray.reduce((acc, next) => {
+    const { width = 45, height = 100, data } = themeList[next];
+    const image = `${acc}
+        <image x="${x}" y="0" width="${width}" height="${height}" xlink:href="${data}" />`;
+    x += width;
+    if (height > y) y = height;
+    return image;
+  }, "");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${x}" height="${y}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <title>Moe Count</title>
     <g>
-      
-        <image x="0" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkCAMAAAAlk0kMAAAAM1BMVEUAAAD+/v4AAADV2uhzfJ6hpLoqHCS3bWtJqur+49K2bWrho6IMSqXhhYARNXfw1sw3b8MsqKn4AAAAAXRSTlMAQObYZgAAAiNJREFUWMPN1uGSqyAMBeByDFyviOv7P+0mERcFRJzpdvb8sBE/bEzHmb4+HMT0SaMhut2gcl41M+kGXFqInU3MLJ4sLq01bFMiR60JwVmIHJExyO0B21TSzpHfOOF0oMjZZ9jQAe9bVCeeMOvkJjlOqiO3iNjSFpbiVOshthKzcyDpcNDhqI+dw1rWLLzqkGsgm6Hq4NVFrT2WVj1rqmq2pSbWs4adfjrHmASX2rH259xoJ/mSaHWpwevGDfz9g2qtmpqcWZbF/Jdo1dKWHA+DsYar0NTG+hBC1Fz5Gz1xx1FzNV1pAMQa5xDrizdNtDlHtOnXtqqxBm+qOgQUmJ+qqg3xcFBo70NFy0w5OGN/vDckSfOVig6XOuTa/+hIgaS/Cu0nU9fBs84HSHLN7jZu0qWpnCFwqc3EOMtmcq1R3K/xSM/4vFaW7EPdfkoNon2zLvNcO/yaFtuv3avCq2n/5/h3DMNWBB/zNp1wCLtGh07t9+hlRod2k2ZZ1nXZStejx1ePJsm0jKy17NCUNL1TW2uJIFrLtrYDx4rGVjb1oFG9lV167dEoNHr0uMa+77UFj3DT1KPBmrq0EjzXkraOQlr50bjRwue0E3VMUSjXmvSJmyPRkzjwWXG7kXQ2M+7XLuEOfY3prNu/PYak0/nf0YQ6pkJrLrR9pIfPa0Kv1nxer3ptRbYw1vW45aD1/C3a5hdR6JIjW7CttxiNhYxzWgvf0IQiIBLWz8YAAAAASUVORK5CYII="/>
-        <image x="45" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkCAMAAAAlk0kMAAAAM1BMVEUAAAD+/v4AAADV2uhzfJ6hpLoqHCS3bWtJqur+49K2bWrho6IMSqXhhYARNXfw1sw3b8MsqKn4AAAAAXRSTlMAQObYZgAAAiNJREFUWMPN1uGSqyAMBeByDFyviOv7P+0mERcFRJzpdvb8sBE/bEzHmb4+HMT0SaMhut2gcl41M+kGXFqInU3MLJ4sLq01bFMiR60JwVmIHJExyO0B21TSzpHfOOF0oMjZZ9jQAe9bVCeeMOvkJjlOqiO3iNjSFpbiVOshthKzcyDpcNDhqI+dw1rWLLzqkGsgm6Hq4NVFrT2WVj1rqmq2pSbWs4adfjrHmASX2rH259xoJ/mSaHWpwevGDfz9g2qtmpqcWZbF/Jdo1dKWHA+DsYar0NTG+hBC1Fz5Gz1xx1FzNV1pAMQa5xDrizdNtDlHtOnXtqqxBm+qOgQUmJ+qqg3xcFBo70NFy0w5OGN/vDckSfOVig6XOuTa/+hIgaS/Cu0nU9fBs84HSHLN7jZu0qWpnCFwqc3EOMtmcq1R3K/xSM/4vFaW7EPdfkoNon2zLvNcO/yaFtuv3avCq2n/5/h3DMNWBB/zNp1wCLtGh07t9+hlRod2k2ZZ1nXZStejx1ePJsm0jKy17NCUNL1TW2uJIFrLtrYDx4rGVjb1oFG9lV167dEoNHr0uMa+77UFj3DT1KPBmrq0EjzXkraOQlr50bjRwue0E3VMUSjXmvSJmyPRkzjwWXG7kXQ2M+7XLuEOfY3prNu/PYak0/nf0YQ6pkJrLrR9pIfPa0Kv1nxer3ptRbYw1vW45aD1/C3a5hdR6JIjW7CttxiNhYxzWgvf0IQiIBLWz8YAAAAASUVORK5CYII="/>
-        <image x="90" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkCAMAAAAlk0kMAAAAM1BMVEUAAAD+/v4AAADV2uhzfJ6hpLoqHCS3bWtJqur+49K2bWrho6IMSqXhhYARNXfw1sw3b8MsqKn4AAAAAXRSTlMAQObYZgAAAiNJREFUWMPN1uGSqyAMBeByDFyviOv7P+0mERcFRJzpdvb8sBE/bEzHmb4+HMT0SaMhut2gcl41M+kGXFqInU3MLJ4sLq01bFMiR60JwVmIHJExyO0B21TSzpHfOOF0oMjZZ9jQAe9bVCeeMOvkJjlOqiO3iNjSFpbiVOshthKzcyDpcNDhqI+dw1rWLLzqkGsgm6Hq4NVFrT2WVj1rqmq2pSbWs4adfjrHmASX2rH259xoJ/mSaHWpwevGDfz9g2qtmpqcWZbF/Jdo1dKWHA+DsYar0NTG+hBC1Fz5Gz1xx1FzNV1pAMQa5xDrizdNtDlHtOnXtqqxBm+qOgQUmJ+qqg3xcFBo70NFy0w5OGN/vDckSfOVig6XOuTa/+hIgaS/Cu0nU9fBs84HSHLN7jZu0qWpnCFwqc3EOMtmcq1R3K/xSM/4vFaW7EPdfkoNon2zLvNcO/yaFtuv3avCq2n/5/h3DMNWBB/zNp1wCLtGh07t9+hlRod2k2ZZ1nXZStejx1ePJsm0jKy17NCUNL1TW2uJIFrLtrYDx4rGVjb1oFG9lV167dEoNHr0uMa+77UFj3DT1KPBmrq0EjzXkraOQlr50bjRwue0E3VMUSjXmvSJmyPRkzjwWXG7kXQ2M+7XLuEOfY3prNu/PYak0/nf0YQ6pkJrLrR9pIfPa0Kv1nxer3ptRbYw1vW45aD1/C3a5hdR6JIjW7CttxiNhYxzWgvf0IQiIBLWz8YAAAAASUVORK5CYII="/>
-        <image x="135" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkBAMAAADgY6QNAAAAKlBMVEUAAAD///8AAABJquoMSqXigXbV2ujx5t8RNXc3b8P2o5u0GBcBAQFzfJ7goIqdAAAAAXRSTlMAQObYZgAAAoVJREFUSMfN1TFr20AUAGBxcxcF4kC6KK7s2mm7VC1U9VbfYI81HAluF6Vg6JChXQ6UpRgTrmS0S5N6qosxKJupibG2QDdPHfp7+s7y6d6porglQ54Ntr97end6OlnWRkGKSajvKty+J+OxdNdLwx/UV5+OdELRAKXI63rgCW163jNwWYh6Omiv6Z2DZw8YNGiza60dDfi011A+gNn8rENU4QBYeB9ePhQSjqUPkJTnQcEP7KF0Cp4WqgeFYWDXgrdvBrSr2yXPfwhvyD/HfpG6L+gH3V+3X/dmK6+JnoMcCi2ib0OvzQyvQqFYnEWROMu6P493OY93hdBOmoPmYB7vgO+IroXWA52bz8BnO42sf2LgbBvagJYD/tnmnL8LvyOvyr59iTjEGLsr/WlbeoS9WAR/DjgJD3toXhjpe7UF5yfTCpyWMXCvFjMWO6SY3Zqz9phdnUC2GQ+g+CSMptn0qKjD2OB2Gtu62P5XW0e7laYfhMjZSPl9jv3uVKVPwlWdrWSS3VfOuvoBf4n9ErvkxLdTvwoNj5Uvxjaqs9VSq7+c5jqJWvneNj3tQ8l01DbT9cDNOaiMTR2Hc1t868/9tlxeP7wuMfZao/QmA7rDsu5+zHVCG7nu0kpbO0p/QaIoWlo/THepI92xCGMtI90inGedQLr0kYUdGNKR6+LUUW6VsMt+7HPurJw5aWuSO0m7ir84mfAw1zl/b/2bjxI/NNxde0UI09d/j2VxeoR9T3mng50EdkH5sWNuW+WdDbyM/SeaFvsRnjbf7Zvxvf/2R2r9GzoxvAycVCW/OsfoOXuqukWEEMh7lIInF5J28XPzQnmvgbycOjGvS1BQv9RdjX7h+A3pRy7XyPGZGQAAAABJRU5ErkJggg=="/>
-        <image x="180" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkCAMAAAAlk0kMAAAAM1BMVEUAAAD+/v4AAADV2uhzfJ6hpLoqHCS3bWtJqur+49K2bWrho6IMSqXhhYARNXfw1sw3b8MsqKn4AAAAAXRSTlMAQObYZgAAAiNJREFUWMPN1uGSqyAMBeByDFyviOv7P+0mERcFRJzpdvb8sBE/bEzHmb4+HMT0SaMhut2gcl41M+kGXFqInU3MLJ4sLq01bFMiR60JwVmIHJExyO0B21TSzpHfOOF0oMjZZ9jQAe9bVCeeMOvkJjlOqiO3iNjSFpbiVOshthKzcyDpcNDhqI+dw1rWLLzqkGsgm6Hq4NVFrT2WVj1rqmq2pSbWs4adfjrHmASX2rH259xoJ/mSaHWpwevGDfz9g2qtmpqcWZbF/Jdo1dKWHA+DsYar0NTG+hBC1Fz5Gz1xx1FzNV1pAMQa5xDrizdNtDlHtOnXtqqxBm+qOgQUmJ+qqg3xcFBo70NFy0w5OGN/vDckSfOVig6XOuTa/+hIgaS/Cu0nU9fBs84HSHLN7jZu0qWpnCFwqc3EOMtmcq1R3K/xSM/4vFaW7EPdfkoNon2zLvNcO/yaFtuv3avCq2n/5/h3DMNWBB/zNp1wCLtGh07t9+hlRod2k2ZZ1nXZStejx1ePJsm0jKy17NCUNL1TW2uJIFrLtrYDx4rGVjb1oFG9lV167dEoNHr0uMa+77UFj3DT1KPBmrq0EjzXkraOQlr50bjRwue0E3VMUSjXmvSJmyPRkzjwWXG7kXQ2M+7XLuEOfY3prNu/PYak0/nf0YQ6pkJrLrR9pIfPa0Kv1nxer3ptRbYw1vW45aD1/C3a5hdR6JIjW7CttxiNhYxzWgvf0IQiIBLWz8YAAAAASUVORK5CYII="/>
-        <image x="225" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkCAMAAAAlk0kMAAAAP1BMVEUAAAAAAAD///9rh7wRNXcnNYv67t83b8MMSqVHWZsoJjjwkHL3waSoq7Tj6u/2waPEblHxkHICAgLqwsfTaYYAnWshAAAAAXRSTlMAQObYZgAAAqlJREFUWMPt191y4jAMhuFVIseyHeeH7v1f636yyJp14kCPt29nwDQPqprhhF8//fTTfxehb+hxHAl9g3/+DnKjFQJ1e+Hh0HY45Ry1w3sUuNHuwobQ4Mqrbb1DodE25KQdMKKrexjDeeGL0fmpm+E5tNj0Uv6wS+HV5rGrl2V0aQ14xtlej6ZH4L7OUPYfh2C40c+t0wSGoMMGqzoA97TxoLpgdNa4+qpdCAna3eq4baZjcJtT29NO9bquykMK0wReb1/Di96Y2TQOKfQ1loQeWJS7LeEQethWqXrFQfoavGjxjNuyrjjca6weTbt1utfg+IzHlRka6aGvkeoJd9DCvYSOere7ek3p0Cm90w62VnTsayJabQs8bKASpaupPJRl0r5Bi2To24h5QzND++UD7VTPkVUz3Wvxc4nZq77nxHPVg+Q3eprmCbGo9tl/osUzA/s3w+n3F/TXUwtnofvZOzicaub74cRw+y5wRfN7zdC2iA731NdgrOjQeO5z8uy94IcHX7Se+nopC+M9i/ewgsd8o4UV6Wi2brUhb9qiHoYuyvbQ1eeZqWPnGUzgVM/P9se1xScEzLNAM09I8f54tJ4KNg0sktZDP1oNCmsaAcNqiofBdMW4aPkBusGtflLTiJ9437fhRs9+MV1xR+PiHn0ZzrrJrrij1zVt28B++Bv0cKlXlDBINR0N+huL/sEJHdeqrhFda2P18F7rxo129IHmvqaqJdohH5pedMFStWaaD12HUyxRc0+gJXd05gvNmVtNLCJsumZawBstjDp6OWl/0maHb2lmFvC+NnhMRv5DLVy0X6ouuGjJRddEuXifG21TllYjj6LqX4qrPs9WWvURRdYima4Z5tzoUjbdDpfY6Kw2Y7W2YwqqekF4fY4yov73utsrfwDR2i8OJJfcTwAAAABJRU5ErkJggg=="/>
-        <image x="270" y="0" width="45" height="100" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAABkBAMAAADgY6QNAAAALVBMVEUAAAD///8AAABzfJ4RNXfzm4/V2ugMSqX76+OyY2OxY2LuvLyhpLrfzc7igXe4Zu+IAAAAAXRSTlMAQObYZgAAAohJREFUSMe90k1r1EAcBvBlvsG0mFLxMDuRitZL8m9DU+lFI3tudaptT3FoQNFDbSXeZTFSEFrZQw49LS0Y8KIsCMFTwYPsbU89+F2cmXTyRuquVnxYdmd+eTKTbNL696GUkqogKoMxnpK/RbGNseFjGe5grI9QCRnjACzxrdZDYJWcg4+nwZZ9E8A3cBaDgyM+RDoCAEf7dxBRdXWC9uc1B2xkfspFiWSOTrUbQ+lP9A3cVu5nrusiaHju14Sruj7BsWbCHYxnwl0u6zpozjJwILYdnsiLKdLmV/0TjJ8N+0BKjISvS//Bwa4sw7fZpm8kLAGgud/8YPHjlK0ax1ub4MZE19mGxRe8++vbD7174LK13JnFrfBVmj4Kp7Xr/urM6yh6u3PFqfQPeBqppMIPtfeE32GS2RfH3TDJubvCF7N+33EPc4fewSzIA/t913dt7abpCoflrUEfXAyFUziYjWGUJCM3Ljsxndn4Z5Iknz7GBpCKHyUyZ3V/etZjcY8dxUHuCIS/iB/vf0ujjVHNR4viKqPoXc1X+FI36kbvuyu84m/40oANUjaAEVDIvQ0cmErF6TRA5g9gpXCblmMW3salUNTsJHdo9pZZc7v1e0fSqUxbef6G1rxVuMyUYOmt8a55Upcst53Y9caXdkr/zLH+eyZ1lf/stBzlOuhrtNZCMB91FY/3rZQIX05ZzZkEc5lN6PMKkPC1C/xzg7du1f1GGEq/3gk7pOxmEMg5cgJOKn3PU+55ncu73LjqaK/wlxf4LrnAbdLsYDevbwJtdGQCafCQIN2vefm2/tq98a6mnQn7+vHuqSn1vL2mPgpDT3v2nO7qQcUXPLsy0JkLSGWgg2ht8AvcqBn+mnf5mAAAAABJRU5ErkJggg=="/>
+      ${parts}
     </g>
 </svg>
 `;
 }
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<any>
 ) {
@@ -34,6 +81,6 @@ export default function handler(
     "max-age=0, no-cache, no-store, must-revalidate"
   );
 
-  const str = getCountImage(name as string, theme as string);
-  res.send(str);
+  const renderSVG = await getCountImage(name as string, theme as Theme);
+  res.send(renderSVG);
 }
