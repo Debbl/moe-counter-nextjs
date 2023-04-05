@@ -58,7 +58,7 @@ export default function Home() {
       <div className="font-normal w-[980px] mx-auto mt-10 flex flex-col items-center gap-y-6">
         <h1 className="font-bold text-2xl">Moe Counter</h1>
         <div>
-          <span>https://moe-counter-nextjs.vercel.app/counter/</span>
+          <span>{info.url}</span>
           <input
             type="text"
             value={info.name}
