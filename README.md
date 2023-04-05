@@ -1,5 +1,9 @@
 # Moe Counter Nextjs
 
+<p>
+<img src="https://moe-counter-nextjs.vercel.app/counter/debbl?theme=gelbooru">
+</p>
+
 ## Home and Document 
 
 - https://moe-counter-nextjs.vercel.app/
