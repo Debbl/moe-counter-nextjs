@@ -18,9 +18,9 @@ async function getCountByName(name: string) {
       Authorization: `Bearer ${CF_TOKEN}`,
     },
   });
-  const count = await response.text();
+  const count = Number(await response.text());
 
-  const res = +count + 1;
+  const res = (isNaN(count) ? 0 : count) + 1;
 
   // write
   await fetch(endpoint, {
