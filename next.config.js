@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async redirects() {
+  async rewrites() {
     return [
       {
-        source: "/counter/:slug*",
-        destination: "/api/counter/:slug*",
-        permanent: true,
+        source: "/counter/:path*",
+        destination: "/api/counter/:path*",
       },
     ];
   },

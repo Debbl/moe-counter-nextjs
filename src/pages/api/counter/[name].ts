@@ -30,7 +30,7 @@ async function getCountByName(name: string) {
   const res = +count + 1;
 
   // write
-  fetch(endpoint, {
+  await fetch(endpoint, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${CF_TOKEN}`,
