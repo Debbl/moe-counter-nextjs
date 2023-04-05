@@ -28,7 +28,14 @@ export default function Home() {
   const handleClick = async () => {
     if (!info.name) return;
     const endpoint = getEndpoint(info.url, info.name, info.theme);
+
+    // window.focus();
+    await navigator.clipboard.writeText(endpoint).then(() => {
+      alert(`Copied ${endpoint}`);
+    });
+
     const str = await (await fetch(endpoint)).text();
+
     setRenderSVG(str);
   };
 
