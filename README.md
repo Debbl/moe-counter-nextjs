@@ -1,13 +1,17 @@
 # Moe Counter Nextjs
 
-## HOME and DOCUMENT
+## Home and Document 
 
 - https://moe-counter-nextjs.vercel.app/
 
-## 使用方法
+## Usage 
 
 - `https://moe-counter-nextjs.vercel.app/counter/<your name>?theme=[asoul | gelbooru | moebooru | moebooru-h | rule34]`
 
-## 例如
+## Example 
 
 - https://moe-counter-nextjs.vercel.app/counter/debbl?theme=gelbooru
+
+## Acknowledge
+
+- https://github.com/journey-ad/Moe-Counter
