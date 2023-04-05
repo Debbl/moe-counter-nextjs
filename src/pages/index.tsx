@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Footer from "~/components/Footer";
 import type { Theme } from "~/types";
 
 const THEME = [
@@ -41,6 +42,8 @@ export default function Home() {
     fetch(endpoint)
       .then((res) => res.text())
       .then((str) => setRenderSVG(str));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -86,6 +89,7 @@ export default function Home() {
             <div dangerouslySetInnerHTML={{ __html: renderSVG }}></div>
           )}
         </div>
+        <Footer />
       </div>
     </div>
   );
