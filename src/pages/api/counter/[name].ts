@@ -1,14 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import getThemeList from "~/data/getThemeList";
-
-export type Theme =
-  | "asoul"
-  | "gelbooru"
-  | "gelbooru-h"
-  | "moebooru"
-  | "moebooru-h"
-  | "rule34";
+import type { Theme } from "~/types";
 
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_NAMESPACE_ID = process.env.CF_NAMESPACE_ID;
