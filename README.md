@@ -6,4 +6,4 @@
 
 # 例如
 
-- https://moe-counter-nextjs.vercel.app/counter/debbl?theme=moebooru-h
+- https://moe-counter-nextjs.vercel.app/counter/debbl?theme=gelbooru
