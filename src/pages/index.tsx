@@ -37,7 +37,7 @@ export default function Home() {
       ...info,
       url,
     });
-    const endpoint = getEndpoint(info.url, info.name, info.theme);
+    const endpoint = getEndpoint(url, info.name, info.theme);
     fetch(endpoint)
       .then((res) => res.text())
       .then((str) => setRenderSVG(str));
