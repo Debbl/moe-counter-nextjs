@@ -31,6 +31,7 @@ export default function Home() {
 
     // window.focus();
     await navigator.clipboard.writeText(endpoint).then(() => {
+      // eslint-disable-next-line no-alert
       alert(`Copied ${endpoint}`);
     });
 
