@@ -1,38 +1,17 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
+import kv from "@vercel/kv";
 import getThemeList from "~/data/getThemeList";
 import type { Theme } from "~/types";
 
-const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
-const CF_NAMESPACE_ID = process.env.CF_NAMESPACE_ID;
-const CF_TOKEN = process.env.CF_TOKEN;
-
-const getEndpoint = (key: string) => {
-  return `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_NAMESPACE_ID}/values/${key}`;
-};
-
 async function getCountByName(name: string) {
-  const endpoint = getEndpoint(name);
-  const response = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${CF_TOKEN}`,
-    },
-  });
-  const count = Number(await response.text());
-
-  const res = (isNaN(count) ? 0 : count) + 1;
-
-  // write
-  await fetch(endpoint, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${CF_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: `${res}`,
-  });
-
-  return res;
+  const count = (await kv.get<number>(name)) || 0;
+  if (!count) {
+    await kv.set(name, 1);
+    return count;
+  }
+  await kv.set(name, count + 1);
+  return count + 1;
 }
 
 async function getCountImage(name: string, theme: Theme, length = 7) {
